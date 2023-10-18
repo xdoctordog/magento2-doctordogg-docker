@@ -7,11 +7,35 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    links:
+      - mariadb
+      - phpfpm
+    volumes: &appvolumes
+      - ~/.composer:/var/www/.composer:cached
+#      - ../sockdata:/sock:rw
+#      - ../sockdata/docker.sock:/sock/docker.sock
+      - sockdata:/sock
+      - ../src/:/var/www/html # Also map nginx.conf inside the container
+      - ../images/nginx/etc/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ../images/nginx/etc/nginx/mime.types:/etc/nginx/mime.types
+      - ../images/nginx/etc/nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf
+      - ../images/nginx/etc/nginx/certs/nginx.crt:/etc/nginx/certs/nginx.crt
+      - ../images/nginx/etc/nginx/certs/nginx.key:/etc/nginx/certs/nginx.key
+
   phpfpm:
     image: php:8.2-fpm-alpine
     container_name: "clean_phpfpm"
-#    volumes: *appvolumes
-#    env_file: env/phpfpm.env
+    links:
+      - mariadb
+    volumes: *appvolumes
+    ports:
+      - "22:22"
+    expose:
+      - 9000
+      - 9001
+      - 9003
+    extra_hosts:
+      - "host.internal.docker:host-gateway"
 
   mariadb:
     image: mariadb:11.1.2
@@ -66,7 +90,4 @@ services:
 
 volumes:
   rabbitmqdata:
-  esdata:
-
-networks:
-  localswarm:
+  sockdata:
