@@ -1,0 +1,72 @@
+version: "3.7"
+
+services:
+  nginx:
+    image: nginx:1.25.2
+    container_name: "clean_nginx"
+    ports:
+      - "80:80"
+      - "443:443"
+  phpfpm:
+    image: php:8.2-fpm-alpine
+    container_name: "clean_phpfpm"
+#    volumes: *appvolumes
+#    env_file: env/phpfpm.env
+
+  mariadb:
+    image: mariadb:11.1.2
+    container_name: "clean_mariadb"
+    command:
+      --max_allowed_packet=2048M
+      --optimizer_use_condition_selectivity=1
+      --optimizer_switch="rowid_filter=off"
+      --max-heap-table-size=12288M
+      --join-buffer-size=20485760
+    ports:
+      - "3306:3306"
+    env_file: env/mariadb.env
+    volumes:
+      - ../mysql-dbdata/:/var/lib/mysql
+
+  redis:
+    image: redis:7.2.1-alpine
+    container_name: "clean_redis"
+    ports:
+      - "6379:6379"
+
+  opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    container_name: "clean_opensearch"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    env_file: env/opensearch.env
+    environment:
+      - "discovery.type=single-node"
+      ## Avoid test failures due to small disks
+      ## More info at https://github.com/markshust/docker-magento/issues/488
+      - "cluster.routing.allocation.disk.threshold_enabled=false"
+      - "index.blocks.read_only_allow_delete"
+
+  rabbitmq:
+    image: rabbitmq:3.12.6
+    container_name: "clean_rabbitmq"
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    volumes:
+      - rabbitmqdata:/var/lib/rabbitmq
+    env_file: env/rabbitmq.env
+
+  mailcatcher:
+    image: sj26/mailcatcher
+    container_name: "clean_mailcatcher"
+    ports:
+      - "1080:1080"
+
+volumes:
+  rabbitmqdata:
+  esdata:
+
+networks:
+  localswarm:
